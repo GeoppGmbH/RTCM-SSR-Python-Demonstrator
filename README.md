@@ -3,10 +3,10 @@
 
 # 1. Introduction
 
-   The RTCM-SSR Python Demonstrator in it's current release it's
+   The RTCM-SSR Python Demonstrator in its current release is
    a software package designed to decode RTCM-SSR binary files 
    providing the RTCM-SSR message content in a
-   human readable format.
+   human-readable format.
    It is developed in Python and it is aimed at providing a
    demo tool useful for decoding RTCM-SSR messages and 
    translating them into Observation Space Representation (OSR),
