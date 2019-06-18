@@ -27,6 +27,7 @@
 
 import bitstruct
 import numpy as np
+import sys
 
 """ RTCM message decoder multi class file
     
@@ -89,8 +90,6 @@ import numpy as np
         - 4090: SSR ionosphere regional polynomial
     References:
        - RTCM c10403.3
-       - ssr_2_vtec_v09.pdf
-       - 4090_4_1_ssr_svion_v04.pdf
        - Proposal of new RTCM SSR Messages (SSR Stage 1: Galileo, 
                                                          QZSS, SBAS BDS)
 """
@@ -99,14 +98,14 @@ class rtcm_decoder:
     def __init__(self, message, type_len):
         self.msg = message
         self.type_len = type_len
-        message_type = bitstruct.unpack('u12', message)[0]
-        if message_type == 4090:
-            name_4090 = bitstruct.unpack('u12u4u8', message)
-            self.msg_type = int(f'{name_4090[0]}' + 
-                                f'{name_4090[1]}' +
-                                f'{name_4090[2]}')
-        else:
-            self.msg_type = message_type
+        try:
+            message_type = bitstruct.unpack('u12', message)[0]
+        except:
+            print('The rtcm-file considered does not contained ' +
+                  'the RTCM-SSR messages considered in the demo.')
+            sys.exit()
+            
+        self.msg_type = message_type
           
         if message_type == 1019:
             self.dec_msg = gps_ephemeris(message)
@@ -186,11 +185,8 @@ class rtcm_decoder:
             self.dec_msg = qzs_hr_clock(message)
         elif message_type == 1268:
             self.dec_msg = qzs_phase_bias(message) 
-        elif self.msg_type == 409041:
-            self.dec_msg = iono_reg_stec(message)
         else:
-            self.dec_msg = None
-            
+            self.dec_msg = None            
 # =============================================================================
 #                              Printing method        
 # =============================================================================
@@ -374,9 +370,14 @@ class rtcm_decoder:
                     ':', self.dec_msg.ddyn) + '\n' +
                     '{:''8} {:''1} {:>13.6e}'.format(' ZDOTDOT     [km/s^2]',
                     ':', self.dec_msg.ddzn) + '\n' +            
-                    '{:''8} {:''1} {:>13.6e}'.format(' DT_UTC/TauC         ',
+                    '{:''8} {:''1} {:>13.6e}'.format(' avail. add. data 0/1',
+                             ':', self.dec_msg.ava) +
+                             '\n' + 
+                    '{:''8} {:''1} {:>13.6e}'.format(' TauC                ', 
                              ':', self.dec_msg.tau_c) +
-                             '\n')
+                             '\n' + 
+                    '{:''8} {:''1} {:>13.6e}'.format(' N4                  ',
+                    ':', self.dec_msg.n4) + '\n')
 
             return strg
 
@@ -1949,10 +1950,14 @@ class glo_ephemeris:
         self.n_a   = unpack_bits[45]
             
         # GLONASS tau_c
-        if unpack_bits[46] == 0:
-            self.tau_c  =  unpack_bits[47] * 2 ** (-31)
+        if self.ava == 0:
+            self.tau_c = 0
+        
         else:
-            self.tau_c  = -unpack_bits[47] * 2 ** (-31)
+            if unpack_bits[46] == 0:
+                self.tau_c  =  unpack_bits[47] * 2 ** (-31)
+            else:
+                self.tau_c  = -unpack_bits[47] * 2 ** (-31)
 
         # GLONASS-M N4
         self.n4 = unpack_bits[48]
@@ -5402,205 +5407,10 @@ class iono_sph:
         self.n_s = n_S
         self.s = S
 
-# *************************************************************************** #
-#                                                                             #
-#         SSR Ionosphere Regional STEC Polynomial Message 4090 Geo++          #
-#                                                                             #
-# *************************************************************************** #
-class iono_reg_stec:
-    def __init__(self, message):
-        # Definition of the bits of the header of the message
-        header = 'u12u4u8u20u4u1u4u16u4u7u1u9u1u3u8s9u8u8'
-        # Unpack the bits of the header    
-        unpack_bits = bitstruct.unpack(header, message)
-        
-        self.gnss = 'IONO'
-        # **************************** Parameters *************************** #
-        # unpack_bits[0] is the type, hence it is not considered here
-        # RTCM3++ Sub-type Range: 0-15 
-        self.sub_type  = unpack_bits[1]
-        
-        # Message number Range: 0:255
-        self.msg_num = unpack_bits[2]
-
-        # GPS Epoch Time 1s
-        self.epoch  = unpack_bits[3]
-        
-        # SSR Update Interval
-        # SSR Update Interval has a range between 0-15, i.e. : 
-        ui_list = [1, 2, 5, 10, 15, 30, 60, 120, 240, 300, 600, 900, 1800,
-                   3600, 7200, 10800]
-        self.ui = ui_list[int(unpack_bits[4])] 
-        
-        # Multiple Message Indicator
-        self.mmi = f'{unpack_bits[5]}'
-        
-        # IOD SSR
-        self.iod = unpack_bits[6]
-        
-        # SSR Provider ID
-        self.provider_id = unpack_bits[7]
-        
-        # SSR Solution ID
-        self.solution_id = unpack_bits[8]        
-        
-        # Model Indicator
-        self.model = unpack_bits[9]
-        
-        # Quality flag indicator
-        self.qual_flag = unpack_bits[10]
-        
-        # STEC quality Range
-        self.quality = unpack_bits[11] * 0.05
-        
-        # STEC Ground Point Origin Indicator
-        self.ground_flag = unpack_bits[12]
-        
-        # Regional STEC Polynomial Indicator
-        self.polytype = unpack_bits[13]
-        
-        # --> Definition of the number of Regional STEC Polynomial 
-        # Coefficients per satellite
-        coeff = [1, 3, 4, 5, 6, 8, 9]
-        self.n_pc = coeff[int(self.polytype)]
-        
-        # Latitude of STEC Ground Point Origin
-        self.lat_gp = unpack_bits[14]
-        
-        # Latitude of STEC Ground Point Origin
-        self.lon_gp = unpack_bits[15]
-        
-        # Heigth of STEC Ionospheric
-        self.height = unpack_bits[16] * 10
-        
-        # Num of satellites
-        self.n_sat = unpack_bits[17]
-
-        # ******************************************************************* #
-        # -->total number of bits considered so far: 118(+9)-> 14bytes + 2<-- #
-        # ******************************************************************* #
-        #                                                                     # 
-        #                            Satellite part                           #
-        #                                                                     #
-        # ******************************************************************* # 
-        # satellite parameters initialization
-        satellite = {}           
-        satellite['ID_' + str(self.epoch)] = []
-        satellite['ID_' + str(self.epoch) + '_flag'] = []            
-        
-        bit_sat = 'u3u8u8' 
-        j = 0
-        for i in range(self.n_sat):               
-            s_unpack = bitstruct.unpack(header + bit_sat, message)
-                
-            # Satellite ID 
-            syst = s_unpack[3 * i + (self.n_pc) * i + 18]
-
-            if syst == 0:
-                name = 'G'
-            elif syst == 1:
-                name = 'R'
-                
-            num  = s_unpack[3 * i + (self.n_pc) * i + 19]
-            if num < 10:
-                num = '0' + str(num)
-            else:
-                num = str(num)
-
-            satellite['ID_' + str(self.epoch)] = np.append(satellite['ID_' +
-                                                           str(self.epoch)],
-                                                            name + num)
-
-            satellite['ID_' + str(self.epoch) + 
-                      '_flag'] = np.append(satellite['ID_' +
-                                                     str(self.epoch) + '_flag'],
-                                           s_unpack[3 * i +
-                                                    (self.n_pc) * i + 20])
-            
-        # ******************************************************************* #
-        #                                                                     # 
-        #             STEC specific part of the satellite considered          #
-        #                                                                     #
-        # ******************************************************************* # 
-
-            bit_STEC = 's20' 
-            ID = name + num
-            
-            for j in range(self.n_pc): 
-                stec_unpack = bitstruct.unpack(header + bit_sat +
-                                               bit_STEC, message)
-                if j == 0:
-                    coeff = ID + '_' + str(self.epoch) + '_' + 'a00'
-                    satellite[coeff] = []
-                    satellite[coeff] = np.append(satellite[coeff],
-                                                 stec_unpack[3 * i +
-                                                             (self.n_pc) * i +
-                                                             j + 21] * 0.005)
-                elif j == 1:
-                    coeff = ID + '_' + str(self.epoch) + '_' + 'a10'
-                    satellite[coeff] = []                    
-                    satellite[coeff] = np.append(satellite[coeff],
-                                                 stec_unpack[3 * i +
-                                                             (self.n_pc) * i + 
-                                                             j + 21] * 0.005)
-                elif j == 2:
-                    coeff = ID + '_' + str(self.epoch) + '_' + 'a01'
-                    satellite[coeff] = []
-                    satellite[coeff] = np.append(satellite[coeff],
-                                                 stec_unpack[3 * i +
-                                                             (self.n_pc) * i + 
-                                                             j + 21] * 0.005)
-                elif j == 3:
-                    coeff = ID + '_' + str(self.epoch) + '_' + 'a20'
-                    satellite[coeff] = []
-                    satellite[coeff] = np.append(satellite[coeff],
-                                                 stec_unpack[3 * i +
-                                                             (self.n_pc) * i + 
-                                                             j + 21] * 0.005)       
-                elif j == 4:
-                    coeff = ID + '_' + str(self.epoch) + '_' + 'a02'
-                    satellite[coeff] = []
-                    satellite[coeff] = np.append(satellite[coeff],
-                                                 stec_unpack[3 * i +
-                                                             (self.n_pc) * i + 
-                                                             j + 21] * 0.005) 
-                elif j == 5:
-                    coeff = ID + '_' + str(self.epoch) + '_' + 'a11'
-                    satellite[coeff] = []
-                    satellite[coeff] = np.append(satellite[coeff],
-                                                 stec_unpack[3 * i +
-                                                             (self.n_pc) * i + 
-                                                             j + 21] * 0.005)       
-                elif j == 6:
-                    coeff = ID + '_' + str(self.epoch) + '_' + 'a21'
-                    satellite[coeff] = []
-                    satellite[coeff] = np.append(satellite[coeff],
-                                                 stec_unpack[3 * i +
-                                                             (self.n_pc) * i + 
-                                                             j + 21] * 0.005) 
-                elif j == 7:
-                    coeff = ID + '_' + str(self.epoch) + '_' + 'a12'
-                    satellite[coeff] = []
-                    satellite[coeff] = np.append(coeff,
-                                                 stec_unpack[3 * i +
-                                                             (self.n_pc) * i + 
-                                                             j + 21] * 0.005)    
-                elif j == 8:
-                    coeff = ID + '_' + str(self.epoch) + '_' + 'a22'
-                    satellite[coeff] = []
-                    satellite[coeff] = np.append(satellite[coeff],
-                                                 stec_unpack[3 * i +
-                                                             (self.n_pc) * i + 
-                                                             j + 21] * 0.005)                                   
-                                 
-                if j < self.n_pc - 1:              
-                    bit_STEC = bit_STEC + 's20' 
-                
-            bit_sat = bit_sat + bit_STEC + 'u3u8u8'
-            
-        self.satellite = satellite
-
 class signalID:
+    """
+    Traking mode update to "ssr_1_gal_qzss_sbas_bds_v08u" document
+    """
     def signals(GNSS, S_TMI):    
         if GNSS == 'GPS':
             sig_list = ['1C', '1P', '1W', '', '', '2C', '2D', '2S', '2L', '2X',
@@ -5608,23 +5418,25 @@ class signalID:
             signal = sig_list[S_TMI]
 
         elif GNSS == 'GLONASS':
-            sig_list = ['1C', '1P', '2C', '2P', 'G1_D', 'G1_P', 'G1_DP',
-                        'G2_D', 'G2_P', 'G2_DP', 'G3_I', 'G3_Q', 'G3_IQ']
+            sig_list = ['1C', '1P', '2C', '2P', '1A', '1B', '1X',
+                        '2A', '2B', '2X', '3I', '3Q', '3X']
             signal = sig_list[S_TMI]        
 
         elif GNSS == 'Galileo':
-            sig_list = ['1A', '1B', '1C', '1X', '1_Z', '5I', '5Q', '5X', '7I',
+            sig_list = ['1A', '1B', '1C', '1X', '1Z', '5I', '5Q', '5X', '7I',
                         '7Q', '7X', '8I', '8Q', '8X', '6A', '6B', '6C', '6X',
                         '6Z']
             signal = sig_list[S_TMI]                
         
         elif GNSS == 'QZSS':
             sig_list = ['1C', '1S', '1L', '2S', '2L', '2X', '5I', '5Q', '5X', 
-                        '6S', 'SL', 'SX', '1X']
+                        '6S', 'SL', 'SX', '1X', '1Z', '5D', '5P', '5Z', '6E',
+                        '6Z']
             signal = sig_list[S_TMI]        
 
         elif GNSS == 'BDS':
-            sig_list = ['2L', '2Q', '2X', '6I', '6Q', '6X', '7I', '7Q', '7X']
+            sig_list = ['2I', '2Q', '2X', '6I', '6Q', '6X', '7I', '7Q', '7X',
+                        '1D', '1P', '1X', '5D', '5P', '5X']
             
             signal = sig_list[S_TMI]   
 
