@@ -87,11 +87,9 @@ import sys
         - 1263: BDS High Rate Clock message
         - 1270: BDS Phase Bias
         - 1264: SSR VTEC
-        - 4090: SSR ionosphere regional polynomial
     References:
        - RTCM c10403.3
-       - Proposal of new RTCM SSR Messages (SSR Stage 1: Galileo, 
-                                                         QZSS, SBAS BDS)
+       
 """
 
 class rtcm_decoder:
@@ -897,89 +895,6 @@ class rtcm_decoder:
                         'range -163.835...163.835)')
             return strg
 
-# *************************************************************************** #
-#                                                                             #
-#                       Ionosphere Regional STEC                              #
-#                                                                             #
-# *************************************************************************** #
-        elif self.msg_type == 409041:        
-            strg = ('### RTCM 3.x -  SSR Ionosphere Regional STEC' + 
-                    ' Polynomial Message <4090>' + '\n' +
-                    'RTCM3.x 4090.4 Geo++ Proprietary Message, SubType: 4' +
-                    '\n' +
-                    'RTCM3.x 4090 Geo++  Message, 4090.4 Sub4type 1' +
-                    '\n' +
-                    'RTCM 3 - SSR SVION Message <4090.4.1>' + '\n' + 
-                    'Message size [bytes]         : ' + str(self.type_len + 6) + 
-                    '\n' +
-                    'Data  length [bytes]         : ' + str(self.type_len) +
-                    '\n' + 
-                    'SSR Epoch time [s]           : ' +
-                    str(self.dec_msg.epoch) + '\n' +
-                    'MMI                          : ' + str(self.dec_msg.mmi) +
-                    '\n' +
-                    'IOD_ssr                      : ' + str(self.dec_msg.iod) +
-                    '\n' + 
-                    'ssrP_ID                      : ' +
-                    str(self.dec_msg.provider_id) + '\n' +
-                    'ssrS_ID                      : ' + '\n' +
-                    str(self.dec_msg.solution_id) + 
-                    'STEC QualityIndicator Flag : ' +
-                    str(self.dec_msg.qual_flag) + '\n' +  
-                    'STEC QualityIndicator[TECU]  : ' + 
-                    str(self.dec_msg.quality) +
-                    '\n' + 
-                    'PolynomialTypeIndicator      : ' +
-                    str(self.dec_msg.polytype) +
-                    '\n' + 
-                    'STEC GroundPointOrigin Flag  : ' +
-                    str(self.dec_msg.ground_flag) + '\n' +
-                    'LatitudeOfOrigin [deg]       : ' +
-                    str(self.dec_msg.lat_gp) + '\n' +  
-                    'LongitudeOfOrigin [deg]      : ' +
-                    str(self.dec_msg.lon_gp) + '\n' +  
-                    'Height [km]                  : ' +
-                    str(self.dec_msg.height) + '\n' +
-                    'Number of satellites         : ' +
-                    str(self.dec_msg.n_sat) + '\n' + 
-                    ' SVnr  flag a00[TECU] a10[TECU] a01[TECU] a11[TECU]' + 
-                    ' a20[TECU] a02[TECU]' + '\n')
-            
-            for s in range(self.dec_msg.n_sat):
-                ID   = self.dec_msg.satellite['ID_' + 
-                                              str(self.dec_msg.epoch)][s]
-                flag = self.dec_msg.satellite['ID_' +
-                                              str(self.dec_msg.epoch) +
-                                              '_flag'][s]
-                a00  = self.dec_msg.satellite[ID + '_' +
-                                              str(self.dec_msg.epoch) +
-                                              '_' + 'a00']
-                a10  = self.dec_msg.satellite[ID + '_' +
-                                              str(self.dec_msg.epoch) +
-                                              '_' + 'a10']
-                a01  = self.dec_msg.satellite[ID + '_' +
-                                              str(self.dec_msg.epoch) +
-                                              '_' + 'a01']
-                a11  = self.dec_msg.satellite[ID + '_' +
-                                              str(self.dec_msg.epoch) +
-                                              '_' + 'a11']
-                a20  = self.dec_msg.satellite[ID + '_' +
-                                              str(self.dec_msg.epoch) +
-                                              '_' + 'a20']
-                a02  = self.dec_msg.satellite[ID + '_' +
-                                              str(self.dec_msg.epoch) +
-                                              '_' + 'a02']
-
-                strg = (strg + ' ' + ID + '    ' + '{:1.0f}'.format(flag) +
-                        '   ' +  '{:+7.3f}'.format(float(a00)) +
-                        '   ' +  '{:+7.3f}'.format(float(a10)) +
-                        '   ' +  '{:+7.3f}'.format(float(a01)) +
-                        '   ' +  '{:+7.3f}'.format(float(a11)) +
-                        '   ' +  '{:+7.3f}'.format(float(a20)) +
-                        '   ' +  '{:+7.3f}'.format(float(a02)) + '\n')
-            return strg
-        else:
-            return ' '
 # =============================================================================
 #                                    GPS
 # =============================================================================
