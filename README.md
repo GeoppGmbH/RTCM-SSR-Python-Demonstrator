@@ -21,7 +21,7 @@
    Beidou, QZSS).
    The decoding involves the following messages: ephemeris,
    satellite orbit and clock corrections, code bias, phase bias,
-   ura, high rate clock, global ionosphere, regional ionosphere (Geo++ GmbH proposed message).
+   ura, high rate clock and global ionosphere.
 
 # 2. Requirements
    
