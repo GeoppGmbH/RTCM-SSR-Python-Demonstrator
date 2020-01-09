@@ -1,7 +1,7 @@
 """
    ----------------------------------------------------------------------------
-   Copyright (C) 2019 Francesco Darugna <fd@geopp.de>  Geo++ GmbH,
-                      Jannes Wübbena    <jw@geopp.de>  Geo++ GmbH.
+   Copyright (C) 2020 Francesco Darugna <fd@geopp.de>  Geo++ GmbH,
+                      Jannes B. Wübbena <jw@geopp.de>  Geo++ GmbH.
    
    A list of all the historical RTCM-SSR Python Demonstrator contributors in
    CREDITS.info
@@ -28,6 +28,7 @@
 import bitstruct
 import numpy as np
 import sys
+import coord_and_time_transformations as trafo
 
 """ RTCM message decoder multi class file
     
@@ -93,7 +94,7 @@ import sys
 """
 
 class rtcm_decoder:
-    def __init__(self, message, type_len):
+    def __init__(self, message, type_len, year, doy):
         self.msg = message
         self.type_len = type_len
         try:
@@ -106,7 +107,7 @@ class rtcm_decoder:
         self.msg_type = message_type
           
         if message_type == 1019:
-            self.dec_msg = gps_ephemeris(message)
+            self.dec_msg = gps_ephemeris(message, year, doy)
         elif message_type == 1057:
             self.dec_msg = gps_orbit(message)
         elif message_type == 1058:
@@ -484,7 +485,7 @@ class rtcm_decoder:
             for j in range(self.dec_msg.n_sat):
                 strg = (strg + ' ' + self.dec_msg.gnss_short + 
                         '{:3s}'.format(self.dec_msg.gnss_id[j]) + 
-                        '   ' +  '{:>+8.4f}'.format(self.dec_msg.dc0[j]) + 
+                        '   ' +  '{:>+8.4f}'.format(self.dec_msg.dc0[j] / 1000) + 
                         '    ' + '{:>+8.4f}'.format(self.dec_msg.dc1[j]) +
                         '    ' + '{:>+8.4f}'.format(self.dec_msg.dc2[j]) +
                         '\n')
@@ -812,7 +813,7 @@ class rtcm_decoder:
 # *************************************************************************** #
         elif self.msg_type == 1264:
             strg = ('### RTCM 3 - SSR ' + self.dec_msg.gnss +
-                    ' Phase bias Message <' + str(self.msg_type) + '>' + '\n' +
+                    ' <' + str(self.msg_type) + '>' + '\n' +
                     'Message size [bytes]      : ' + str(self.type_len + 6) + 
                     '\n' +
                     'Data  length [bytes]      : ' + str(self.type_len) +
@@ -828,24 +829,24 @@ class rtcm_decoder:
                     str(self.dec_msg.provider_id)  + '\n' +
                     'ssrS_ID                   : ' + 
                     str(self.dec_msg.solution_id) + '\n' +
-                    ' quality indicator [TECU]       : ' + 
+                    'quality indicator [TECU]       : ' + 
                     str(self.dec_msg.quality) +
                     '\n' +
-                    ' Number of layers               : ' + 
+                    'Number of layers               : ' + 
                     str(self.dec_msg.n_layers) +
                     '\n') 
     
             for l in range(self.dec_msg.n_layers):
                     strg = (strg + 
-                            ' h [km]                         : ' + 
+                            'h [km]                         : ' + 
                             str(self.dec_msg.height[l]) + '\n' + 
-                            ' Spherical Harmonic degree      : ' +
+                            'Spherical Harmonic degree      : ' +
                             str(int(self.dec_msg.degree[l])) + '\n' + 
-                            ' Spherical Harmonic order       : ' +
+                            'Spherical Harmonic order       : ' +
                             str(int(self.dec_msg.order[l])) + '\n' +
-                            ' Number of Cosine coefficients  : ' +
+                            'Number of Cosine coefficients  : ' +
                             str(int(self.dec_msg.n_c[l])) + '\n' + 
-                            ' Number of Sine   coefficients  : ' + 
+                            'Number of Sine   coefficients  : ' + 
                             str(int(self.dec_msg.n_s[l])) + '\n') 
         
             index = 0        
@@ -870,7 +871,7 @@ class rtcm_decoder:
                                         np.str('{:+7.3f}'.format(self.dec_msg.s[0][k])))
             for j in range(int(self.dec_msg.order[l]) + 1):
                 if index < self.dec_msg.n_c[l]:
-                    strg = (strg + ' C' + f'{j}' + '[TECU]' + 
+                    strg = (strg + 'C' + f'{j}' + '[TECU]' + 
                               ': ' +  ",".join(C_print[index: index +
                                                     (int(self.dec_msg.degree[l]) +
                                                      1 - 
@@ -881,7 +882,7 @@ class rtcm_decoder:
             index = 0        
             for j in range(int(self.dec_msg.order[l])):
                 if index < self.dec_msg.n_s[l]:
-                    strg = (strg + ' S' + f'{j+1}' + '[TECU]' + 
+                    strg = (strg + 'S' + f'{j+1}' + '[TECU]' + 
                               ': ' + ",".join(S_print[index: index +
                                                     (int(self.dec_msg.degree[l]) +
                                                      1 - 
@@ -895,7 +896,7 @@ class rtcm_decoder:
                         'range -163.835...163.835)')
             return strg
         else:
-            return ' '
+            return
 # =============================================================================
 #                                    GPS
 # =============================================================================
@@ -905,7 +906,7 @@ class rtcm_decoder:
 #                                                                             #
 # *************************************************************************** #        
 class gps_ephemeris:
-    def __init__(self, message):
+    def __init__(self, message, year, doy):
         # Definition of the bits of the message
         content =  ('u12u6u10u4s2s14u8u16s8s16s22u10s16s16s32s16u32s16u32u' + 
                     '16s16s32s16s32s16s32s24s8u6s1s1')
@@ -928,10 +929,24 @@ class gps_ephemeris:
         # GPS week number. Range: 0-1023
         week = unpack_bits[2]
         # GPS week rollover problem... week number went from 1023 to 1024
-        # on 21st August 1999, but limit is 1023.
-        # Need to add logic to account for rollovers. Input is GPS time (s)?
-        # 1 GPS week = 604 800 s
-        self.week = week + 1024
+        # August 21 to August 22, 1999, when GPS Week 1023. Need to add 1024
+        # on on the night of April 6 to April 7, 2019. Need to add 2048.
+        # The computation below is valid till next week roll over
+        # Compute doy of first week roll-over
+        dy1 = trafo.date_to_doy(1999, 8, 21)
+        dy2 = trafo.date_to_doy(2019, 4, 6)
+        [year, month, dom] = trafo.doy_to_date(year, doy)
+        
+        if ((year <= 1999) & (doy <= dy1)):
+            self.week = week
+        elif ((year == 1999) & (doy > dy1)):
+            self.week = week + 1024
+        elif (( year > 1999) & (year < 2019)):
+             self.week = week + 1024 
+        elif ((year == 2019) & (doy <= dy2)):
+            self.week = week + 1024
+        else:
+            self.week = week + 2048
         
         # GPS SV Accuracy 
         self.ura = unpack_bits[3]
@@ -2944,7 +2959,7 @@ class gal_clock:
             else:
                 GAL_ID = np.append(GAL_ID, f'{s_unpack[4 * i + 8]}')
             # Delta clock C0, C1, C2 ([mm], [mm/s], [mm/s**2])
-            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1    )  
+            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1 * 10 ** (-3))  
             D_C1 = np.append(D_C1, s_unpack[4 * i + 10] * 0.001  )  
             D_C2 = np.append(D_C2, s_unpack[4 * i + 11] * 0.00002)  
 
@@ -2952,7 +2967,7 @@ class gal_clock:
         self.dc1 = D_C1
         self.dc2 = D_C2
         
-        self.gnss_id
+        self.gnss_id = GAL_ID
             
 # *************************************************************************** #
 #                                                                             #
@@ -3790,7 +3805,7 @@ class bds_clock:
                 BDS_ID = np.append(BDS_ID, f'{s_unpack[4 * i + 8]}')
                 
             # Delta clock C0, C1, C2 ([mm], [mm/s], [mm/s**2])
-            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1    )  
+            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1 * 10 ** (-3))  
             D_C1 = np.append(D_C1, s_unpack[4 * i + 10] * 0.001  )  
             D_C2 = np.append(D_C2, s_unpack[4 * i + 11] * 0.00002)  
     
@@ -4642,7 +4657,7 @@ class qzs_clock:
                 QZS_ID = np.append(QZS_ID, f'{s_unpack[4*i +  8]}')
                     
             # Delta clock C0, C1, C2 ([mm], [mm/s], [mm/s**2])
-            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1    )  
+            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1 * 10 ** (-3))  
             D_C1 = np.append(D_C1, s_unpack[4 * i + 10] * 0.001  )  
             D_C2 = np.append(D_C2, s_unpack[4 * i + 11] * 0.00002)  
 
@@ -4881,7 +4896,7 @@ class qzs_orbit_clock:
         self.dot_dr = dot_D_r
         self.dot_dn = dot_D_n
         self.dot_dt = dot_D_t
-        self.dc0 = D_C0
+        self.dc0 = D_C0 * 1e-3
         self.dc1 = D_C1
         self.dc2 = D_C2
         
