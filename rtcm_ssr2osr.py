@@ -267,11 +267,11 @@ class OrbCorr:
 class ClockCorr:
     """ Orbit correction computation.
         Input:
-            - ssr clock corrections
+            - ssr clock corrections in [mm], [mm/s], [mm/s**2]
             - delta time w.r.t. the received msg of corrections
             - index of the desired satellite
         Output:
-            clock correction along the line of sight
+            clock correction along the line of sight in [m]
     """
     def __init__(self, clock, dt, sv):
         i = np.where(clock.gnss_id == sv)        
@@ -279,7 +279,8 @@ class ClockCorr:
             self.corr = []
         else:
             i = int(i[0])
-            self.corr = clock.dc0[i] + clock.dc1[i] * dt + clock.dc2[i] * dt**2
+            self.corr = (1e-3 * (clock.dc0[i] + clock.dc1[i] * dt +
+                                 clock.dc2[i] * dt**2))
 # =============================================================================
 # OSR Code Bias    
 # =============================================================================

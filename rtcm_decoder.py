@@ -644,7 +644,7 @@ class rtcm_decoder:
                             '    ' + '{:>+8.4f}'.format(self.dec_msg.dot_dr[j]) +
                             '  ' + '{:>+8.4f}'.format(self.dec_msg.dot_dt[j]) +
                             '  ' + '{:>+8.4f}'.format(self.dec_msg.dot_dn[j]) +
-                            '   ' +  '{:>+8.4f}'.format(self.dec_msg.dc0[j]) + 
+                            '   ' +  '{:>+8.4f}'.format(self.dec_msg.dc0[j]*1e-3) + 
                             '    ' + '{:>+7.4f}'.format(self.dec_msg.dc1[j]) +
                             '    ' + '{:>+7.4f}'.format(self.dec_msg.dc2[j]) +
                             '\n')
@@ -676,7 +676,7 @@ class rtcm_decoder:
                             '    ' + '{:>+8.4f}'.format(self.dec_msg.dot_dr[j]) +
                             '  ' + '{:>+8.4f}'.format(self.dec_msg.dot_dt[j]) +
                             '  ' + '{:>+8.4f}'.format(self.dec_msg.dot_dn[j]) +
-                            '   ' +  '{:>+8.4f}'.format(self.dec_msg.dc0[j]) + 
+                            '   ' +  '{:>+8.4f}'.format(self.dec_msg.dc0[j]*1e-3) + 
                             '    ' + '{:>+7.4f}'.format(self.dec_msg.dc1[j]) +
                             '    ' + '{:>+7.4f}'.format(self.dec_msg.dc2[j]) +
                             '\n')
@@ -1161,7 +1161,7 @@ class gps_orbit_clock:
         self.dot_dt = dot_dt
         self.dot_dn = dot_dn
         
-        self.dc0 = dc0*1e-3
+        self.dc0 = dc0
         self.dc1 = dc1
         self.dc2 = dc2
         
@@ -1455,9 +1455,8 @@ class gps_clock:
             else:
                 GPS_ID = np.append(GPS_ID, f'{s_unpack[4 * i + 8]}')
             # Delta Clock C0
-            # Printed in [m]
-            Dcl_A0 = np.append(Dcl_A0, s_unpack[4 * i + 9] * 0.1 *
-                                   10 ** (-3))
+            # Printed in [mm]
+            Dcl_A0 = np.append(Dcl_A0, s_unpack[4 * i + 9] * 0.1)
             
             # Delta Clock C1
             # Printed in [mm/s]
@@ -2081,9 +2080,8 @@ class glo_clock:
             else:
                 GLO_ID = np.append(GLO_ID, f'{s_unpack[4 * i + 8]}')
                             
-            # Delta Clock C0
-            Dcl_C0 = np.append(Dcl_C0, s_unpack[4 * i + 
-                                                9] * 0.1 * 10 ** (-3))
+            # Delta Clock C0 [mm]
+            Dcl_C0 = np.append(Dcl_C0, s_unpack[4 * i + 9] * 0.1)
             
             # Delta Clock C1
             # Printed in [mm/s]
@@ -2319,7 +2317,7 @@ class glo_orbit_clock:
         self.dot_dr = dot_D_r
         self.dot_dn = dot_D_n
         self.dot_dt = dot_D_t
-        self.dc0 = D_C0 * 1e-3
+        self.dc0 = D_C0
         self.dc1 = D_C1
         self.dc2 = D_C2
         self.p = p
@@ -2959,7 +2957,7 @@ class gal_clock:
             else:
                 GAL_ID = np.append(GAL_ID, f'{s_unpack[4 * i + 8]}')
             # Delta clock C0, C1, C2 ([mm], [mm/s], [mm/s**2])
-            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1 * 10 ** (-3))  
+            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1)  
             D_C1 = np.append(D_C1, s_unpack[4 * i + 10] * 0.001  )  
             D_C2 = np.append(D_C2, s_unpack[4 * i + 11] * 0.00002)  
 
@@ -3189,7 +3187,7 @@ class gal_orbit_clock:
         self.dot_dr = dot_D_r
         self.dot_dt = dot_D_t
         self.dot_dn = dot_D_n
-        self.dc0 = D_C0 * 1e-3
+        self.dc0 = D_C0
         self.dc1 = D_C1
         self.dc2 = D_C2
         
@@ -3805,7 +3803,7 @@ class bds_clock:
                 BDS_ID = np.append(BDS_ID, f'{s_unpack[4 * i + 8]}')
                 
             # Delta clock C0, C1, C2 ([mm], [mm/s], [mm/s**2])
-            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1 * 10 ** (-3))  
+            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1)  
             D_C1 = np.append(D_C1, s_unpack[4 * i + 10] * 0.001  )  
             D_C2 = np.append(D_C2, s_unpack[4 * i + 11] * 0.00002)  
     
@@ -4045,7 +4043,7 @@ class bds_orbit_clock:
             self.dot_dr = dot_D_r
             self.dot_dn = dot_D_n
             self.dot_dt = dot_D_t
-            self.dc0 = D_C0 * 1e-3
+            self.dc0 = D_C0
             self.dc1 = D_C1
             self.dc2 = D_C2
                 
@@ -4657,7 +4655,7 @@ class qzs_clock:
                 QZS_ID = np.append(QZS_ID, f'{s_unpack[4*i +  8]}')
                     
             # Delta clock C0, C1, C2 ([mm], [mm/s], [mm/s**2])
-            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1 * 10 ** (-3))  
+            D_C0 = np.append(D_C0, s_unpack[4 * i +  9] * 0.1)  
             D_C1 = np.append(D_C1, s_unpack[4 * i + 10] * 0.001  )  
             D_C2 = np.append(D_C2, s_unpack[4 * i + 11] * 0.00002)  
 
@@ -4896,7 +4894,7 @@ class qzs_orbit_clock:
         self.dot_dr = dot_D_r
         self.dot_dn = dot_D_n
         self.dot_dt = dot_D_t
-        self.dc0 = D_C0 * 1e-3
+        self.dc0 = D_C0
         self.dc1 = D_C1
         self.dc2 = D_C2
         
