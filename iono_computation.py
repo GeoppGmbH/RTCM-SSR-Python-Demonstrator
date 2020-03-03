@@ -69,6 +69,8 @@ class IonoComputation:
         self.system  = system
         
         self.layers = iono.n_layers
+        self.stec_corr_f1 = 0
+        self.strg = ''
         for l in range(self.layers):
             self.height = iono.height[l]
             self.sh_deg = iono.degree[l]
@@ -83,88 +85,87 @@ class IonoComputation:
              p_nm, p_cos, p_sin, m, n,
              vtec] = IonoComputation.compute_global_iono(self)
             stec = vtec * sf
-            self.stec_corr_f1 = 40.3 * 1e16 / (f1 * f1) * stec   
+            self.stec_corr_f1 += 40.3 * 1e16 / (f1 * f1) * stec   
                  
-            strg = ('### SV pos/vel for SV ' + ID + ' at ' + f'{epoch}' +
-                    ': ' + '{:16.4f}'.format(state[0]) + '   ' + 
-                    '{:16.4f}'.format(state[1]) + '   ' + 
-                    '{:16.4f}'.format(state[2]) + ' [m]' + '   ' + 
-                    '{:9.4f}'.format(state[3]) + '   ' + 
-                    '{:9.4f}'.format(state[4]) + '   ' +  
-                    '{:9.4f}'.format(state[5]) + ' [m/s]' + '\n' +
-                     'PPt at t=' +
-                    f'{epoch}' + '(sun shift= ' +
-                    '{:11.8f}'.format(sun_shift * 180 / np.pi) +
-                    ' deg)' + ' \n' + 
-                    'PPt from Ref phi_R= ' + 
-                    '{:11.8f}'.format(lat_sph * 180 / np.pi) + ' lam_R=' + 
-                    '{:11.8f}'.format(lon_sph * 180 / np.pi) +  
-                    ' rE+hR= ' + '{:10.3f}'.format(height_sph + 6370000) + 
-                    '(spherical!)' + '\n' + 
-                    'PPt from Ref to SV at elev= ' +
-                    '{:11.8f}'.format(el * 180 / np.pi) +  ' azim ' + 
-                    '{:11.8f}'.format(az * 180 / np.pi) +
-                    '(spherical!)' + '\n' +
-                     'PPt psi_pp= ' +
-                    '{:11.8f}'.format(psi_pp * 180 / np.pi) +
-                    ' phi_pp ' + 
-                    '{:11.8f}'.format(phi_pp * 180 / np.pi) +
-                    ' lam_pp ' + 
-                    '{:11.8f}'.format(lambda_pp * 180 / np.pi) +
-                    ' lon_S ' +  
-                    '{:11.8f}'.format(lon_s * 180 / np.pi) +
-                    ' rE+hI: ' + 
-                    '{:10.3f}'.format(self.height * 1000 + 6370000) + '\n'
-                     'Pnm : ')
+            self.strg += ('### SV pos/vel for SV ' + ID + ' at ' + f'{epoch}' +
+                          ': ' + '{:16.4f}'.format(state[0]) + '   ' + 
+                          '{:16.4f}'.format(state[1]) + '   ' + 
+                          '{:16.4f}'.format(state[2]) + ' [m]' + '   ' + 
+                          '{:9.4f}'.format(state[3]) + '   ' + 
+                          '{:9.4f}'.format(state[4]) + '   ' +  
+                          '{:9.4f}'.format(state[5]) + ' [m/s]' + '\n' +
+                          'PPt at t=' +
+                          f'{epoch}' + '(sun shift= ' +
+                          '{:11.8f}'.format(sun_shift * 180 / np.pi) +
+                          ' deg)' + ' \n' + 
+                          'PPt from Ref phi_R= ' + 
+                          '{:11.8f}'.format(lat_sph * 180 / np.pi) + ' lam_R=' + 
+                          '{:11.8f}'.format(lon_sph * 180 / np.pi) +  
+                          ' rE+hR= ' + '{:10.3f}'.format(height_sph + 6370000) + 
+                          '(spherical!)' + '\n' + 
+                          'PPt from Ref to SV at elev= ' +
+                          '{:11.8f}'.format(el * 180 / np.pi) +  ' azim ' + 
+                          '{:11.8f}'.format(az * 180 / np.pi) +
+                          '(spherical!)' + '\n' +
+                          'PPt psi_pp= ' +
+                          '{:11.8f}'.format(psi_pp * 180 / np.pi) +
+                          ' phi_pp ' + 
+                          '{:11.8f}'.format(phi_pp * 180 / np.pi) +
+                          ' lam_pp ' + 
+                          '{:11.8f}'.format(lambda_pp * 180 / np.pi) +
+                          ' lon_S ' +  
+                          '{:11.8f}'.format(lon_s * 180 / np.pi) +
+                          ' rE+hI: ' + 
+                          '{:10.3f}'.format(self.height * 1000 + 6370000) + '\n'
+                          'Pnm : ')
             # Lagrange Polynomials
             for o in range(len(p_nm)):
                 m_ind = int(m[o])
                 n_ind = int(n[o])
-                strg = (strg + 'P(' + f'{n_ind}' + ',' +
-                                  f'{m_ind}' + ')=' +
-                        '{:7.4f}'.format(p_nm[o]) + '; ')
+                self.strg += ('P(' + f'{n_ind}' + ',' +
+                              f'{m_ind}' + ')=' +
+                              '{:7.4f}'.format(p_nm[o]) + '; ')
             # Cosines
-            strg = strg + '\n' +  'Pcos: '
+            self.strg += '\n' +  'Pcos: '
             for o in range(len(p_cos)):
                 m_ind = int(m[o])
                 n_ind = int(n[o])
-                strg = (strg + 'P(' + f'{n_ind}' + ',' + 
-                                  f'{m_ind}' + ')=' +
-                       '{:7.4f}'.format(p_cos[o]) + '; ') 
+                self.strg += ('P(' + f'{n_ind}' + ',' + 
+                              f'{m_ind}' + ')=' +
+                              '{:7.4f}'.format(p_cos[o]) + '; ') 
             # Sines
-            strg = strg + '\n' + 'Psin: '
+            self.strg += '\n' + 'Psin: '
             for o in range(len(p_sin)):
                 m_ind = int(m[o])
                 n_ind = int(n[o])
-                strg = (strg + 'P(' + f'{n_ind}' + ',' + 
-                        f'{m_ind}' + ')=' +
-                        '{:7.4f}'.format(p_sin[o]) + '; ')
-            # Ionosphere
-            self.strg = (strg + '\n'+
-                     'Sum VTEC=' +
-                     '{:6.3f}'.format(vtec) + 
-                     '[TECU]' + ',' + ' sf=' +
-                     '{:6.3f}'.format(sf) +
-                     ',' + 'STEC=' +
-                     '{:6.3f}'.format(stec) +
-                     '[TECU]' + '\n' + 
-                     'SSR_VTEC: SV' + ID + 
-                     ' Have SSR VTEC Iono slant influence: ' + 
-                     '{:6.3f}'.format(stec) + '[TECU]' + 
-                     '{:6.3f}'.format(self.stec_corr_f1) +
-                     '[m-L1]') 
-                                
+                self.strg += ('P(' + f'{n_ind}' + ',' + 
+                              f'{m_ind}' + ')=' +
+                              '{:7.4f}'.format(p_sin[o]) + '; ')
+            self.strg += ('\n'+
+                          'Sum VTEC=' +
+                          '{:6.3f}'.format(vtec) + 
+                          '[TECU]' + ',' + ' sf=' +
+                          '{:6.3f}'.format(sf) +
+                          ',' + 'STEC=' +
+                          '{:6.3f}'.format(stec) +
+                          '[TECU]' + '\n' + 
+                          'SSR_VTEC: SV' + ID + 
+                          ' Have SSR VTEC Iono slant influence: ' + 
+                          '{:6.3f}'.format(stec) + '[TECU]' + 
+                          '{:6.3f}'.format(self.stec_corr_f1) +
+                          '[m-L1]' + '\n') 
+            
     def __str__(self):
         return self.strg
     
-    def compute_legendre_poly(self, order, lat_pp, lon_s):
+    def compute_legendre_poly(self, max_val, lat_pp, lon_s):
         """ Recursive Legendre polynomials computation
         
         """
         x = np.sin(lat_pp) 
         
         # ***** Calculate Legendre polynomials with recursion algorithm ***** #
-        nmax    = int(order + 1)
+        nmax    = int(max_val + 1)
         p       = np.zeros((nmax, nmax))
         p[0][0] = 1.0
 
@@ -213,16 +214,17 @@ class IonoComputation:
 # =============================================================================
 #                          VTEC computation    
 # =============================================================================
-    def compute_vtec(self, order, c_nm, s_nm, p_cos, p_sin):
+    def compute_vtec(self, order, degree, c_nm, s_nm, p_cos, p_sin):
         """Computation of the VTEC
         
         """
         vtec  = 0            
-        nmax    = int(order + 1)
+        nmax    = int(degree + 1)
         i = 0
             
         for n in range(0, nmax, 1):
-            for m in range(0, n + 1, 1):
+            mmax = int(np.min([n, order])) + 1
+            for m in range(0, mmax, 1):
                 tot_1 = 0
                 tot_2 = 0
                 if m == 0:
@@ -262,7 +264,7 @@ class IonoComputation:
             if index < nc:
                 c2append = np.concatenate((np.zeros(j),
                                            c_print[index : index +
-                                                   (int(order) +
+                                                   (int(deg) +
                                                     1 - j)]), axis=0)
                 c_nm[j].append(c2append)
             index = index + (int(deg) + 1 - j)
@@ -273,12 +275,10 @@ class IonoComputation:
             if index < ns:
                 s2append = np.concatenate((np.zeros(j),
                                            s_print[index : index +
-                                            (int(order) - j)]), axis=0)
+                                            (int(deg) - j)]), axis=0)
                 s_nm[j].append(s2append)
             index = index + (int(deg) - j)
-            # Cnm --> 3 indices m  , layer, n
-            # Snm --> 3 indices m-1, layer, n
-            
+
         # *********************************************************** #
         #                                                             #
         #                 Pierce Point computation                    #
@@ -303,11 +303,12 @@ class IonoComputation:
                                                      self.epoch)
 
         # computation of the iono delay
+        max_val = np.max([order, deg])
         [p_nm, p_cos, p_sin,
-         m, n] = IonoComputation.compute_legendre_poly(self, order,
+         m, n] = IonoComputation.compute_legendre_poly(self, max_val,
                                                        phi_pp, lon_s)
             
-        vtec = IonoComputation.compute_vtec(self, order, c_nm, s_nm,
+        vtec = IonoComputation.compute_vtec(self, order, deg, c_nm, s_nm,
                                             p_cos, p_sin)  
             
         return (lat_sph, lon_sph, height_sph, el, az, psi_pp,
