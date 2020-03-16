@@ -3691,7 +3691,7 @@ class bds_orbit:
         dot_D_t = []
         dot_D_n = []
             
-        bit_sat = self.n_sat * 'u6u10u24s22s20s20s21s19s19' 
+        bit_sat = self.n_sat * 'u6u10u8s22s20s20s21s19s19' 
         s_unpack = bitstruct.unpack(header + bit_sat, message)
             
         for i in range(self.n_sat): 
@@ -3987,7 +3987,7 @@ class bds_orbit_clock:
         D_C1 = []
         D_C2 = []
             
-        bit_sat = self.n_sat * 'u6u10u24s22s20s20s21s19s19s22s21s27'
+        bit_sat = self.n_sat * 'u6u10u8s22s20s20s21s19s19s22s21s27'
             
         # number of parameters
         n = 12
@@ -4550,10 +4550,7 @@ class qzs_orbit:
         n = 8
         for i in range(self.n_sat):
             #  ID number,       
-            if s_unpack[n * i +  8] < 10:
-                QZS_ID = np.append(QZS_ID, s_unpack[n * i + 8])
-            else:
-                QZS_ID = np.append(QZS_ID, f'{s_unpack[n * i + 8]}')
+            QZS_ID = np.append(QZS_ID, f'{s_unpack[n * i + 8] + 192}')
                     
             #  IOD: Issue Of Data ephemeris to reference 
             QZS_IOD = np.append(QZS_IOD, s_unpack[n * i + 10])
@@ -4607,7 +4604,7 @@ class qzs_clock:
         
         # **************************** Parameters *************************** #
         # unpack_bits[0] is the type, hence it is not considered here
-        # BDS Epoch Time 1s
+        # QZS Epoch Time 1s
         self.epoch  = unpack_bits[1]
 
         # SSR Update Interval
