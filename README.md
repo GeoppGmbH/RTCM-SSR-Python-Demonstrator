@@ -89,6 +89,10 @@ v1.1
      lat = 52.5 deg, lon = 9.5 deg, height = 100 m)
    - year and day of the year (DOY).
    
+   The RTCM-SSR proposed messaged are updated to version v08u.
+   If, for Galileo, QZSS, SBAS and BDS the version v07 is needed,
+   please refer to the rtcm_decoder.py version before 2020-03-16. 
+   
 4. Additional information
    ======================
    Geo++ GmbH is the owner of the RTCM-SSR Python Demonstrator,
