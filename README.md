@@ -57,6 +57,10 @@ v1.1
 	 (e.g. from cmd: "conda install crcmod -c conda-forge")  
    - tkinter Python module
       (e.g. from cmd: "conda install tk -c conda-forge")
+   - NumPy Python library
+     (e.g. from cmd "conda install numpy -c conda-forge")
+   - Scipy Python library
+     (e.g. from cmd "conda install scipy -c conda-forge")
    - an rtcm binary file (e.g. *.rtc).
       
 3. Notes
