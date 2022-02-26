@@ -27,6 +27,7 @@
 
 import do_rtcmssr_demo
 import tkinter as tk
+import os
 
 """ Test script to use the RTCM-SSR Python Demonstrator
     starting a GUI interface.
@@ -127,10 +128,10 @@ txt_doy.pack(side='left')
 # =============================================================================
 class read_input():
     def __init__(self):
-        if txt_path.get()[-1]=='\\':
+        if txt_path.get()[-1]==os.path.sep:
             self.path  = txt_path.get()
         else:
-            self.path = txt_path.get() + '\\'
+            self.path = txt_path.get() + os.path.sep
         self.file  = txt_file.get()
         self.year  = int(txt_yr.get())
         self.doy   = int(txt_doy.get())
@@ -150,10 +151,10 @@ class read_input():
         if len(out_folder) == 0:
             self.out_folder = None
         else:
-            if out_folder[-1]=='\\':
+            if out_folder[-1]==os.path.sep:
                 self.out_folder = out_folder
             else:
-                self.out_folder = out_folder + '\\'
+                self.out_folder = out_folder + os.path.sep 
 # =============================================================================
 # Decode only
 # =============================================================================

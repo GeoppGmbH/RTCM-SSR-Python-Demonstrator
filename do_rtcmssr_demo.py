@@ -34,6 +34,7 @@ import rtcm_ssr2osr
 import sort_messages
 from datetime import date
 import os, errno
+import pathlib
 
 """ Decoding of RTCM 3 message and computing influence from SSR components on 
     user position.
@@ -99,7 +100,7 @@ def do_rtcmssr_demo(f_in, user_llh, dec_only=None, out_folder=None,
 #  open output files   
 # =============================================================================
     if out_folder is None:
-        out_folder = 'RTCM_SSR_demo//'
+        out_folder = os.getcwd() + os.path.sep + 'RTCM_SSR_demo' + os.path.sep
     else:
         out_folder = out_folder
     try:    
@@ -108,11 +109,11 @@ def do_rtcmssr_demo(f_in, user_llh, dec_only=None, out_folder=None,
         if e.errno != errno.EEXIST:
             raise
     if dec_only == 1:
-        dec_out = open(out_folder + f_in[-12:-4] + '.ssr', 'w')
+        dec_out = open(out_folder + os.path.basename(f_in) + '.ssr', 'w')
     else:
-        osr_output = open(out_folder + f_in[-12:-4] + '.osr', 'w')
-        iono_output = open(out_folder + f_in[-12:-4] + '.ion', 'w')
-        dec_out = open(out_folder + f_in[-12:-4] + '.ssr', 'w')
+        osr_output = open(out_folder + os.path.basename(f_in) + '.osr', 'w')
+        iono_output = open(out_folder + os.path.basename(f_in) + '.ion', 'w')
+        dec_out = open(out_folder + os.path.basename(f_in) + '.ssr', 'w')
         
 # =============================================================================
 #   Input data    
