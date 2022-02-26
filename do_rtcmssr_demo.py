@@ -100,7 +100,7 @@ def do_rtcmssr_demo(f_in, user_llh, dec_only=None, out_folder=None,
 #  open output files   
 # =============================================================================
     if out_folder is None:
-        out_folder = os.getcwd()
+        out_folder = os.getcwd() + os.path.sep + 'RTCM_SSR_demo' + os.path.sep
     else:
         out_folder = out_folder
     try:    
